@@ -24,7 +24,7 @@ Un diagramme de flux montrant la relation entre :
 
 ## 🚀 Démo en ligne
 
-👉 **[Voir le projet](https://VOTRE-USERNAME.github.io/marathon-dataviz/)**
+👉 **[Voir le projet](https://matheorie.github.io/marathon-dataviz/)**
 
 ## 🛠️ Technologies utilisées
 
@@ -44,8 +44,7 @@ marathon-dataviz/
 ├── data/
 │   ├── Athletes.csv        # Données des coureurs
 │   └── Weather.csv         # Données météo par ZIP
-├── README.md               # Documentation
-└── assets/                 # Ressources (images, etc.)
+└── README.md               # Documentation
 ```
 
 ## 📊 Données
@@ -68,7 +67,7 @@ Les données proviennent de [Kaggle - 2024 Boston Marathon Weather and Splits](h
 
 1. **Cloner le repository**
    ```bash
-   git clone https://github.com/VOTRE-USERNAME/marathon-dataviz.git
+   git clone https://github.com/matheorie/marathon-dataviz.git
    cd marathon-dataviz
    ```
 
@@ -88,7 +87,7 @@ Les données proviennent de [Kaggle - 2024 Boston Marathon Weather and Splits](h
 
 ## 📈 Insights clés
 
-- **26,632 coureurs** analysés provenant de 50 états
+- **17,209 coureurs** analysés provenant de 50 états
 - Le **Massachusetts** est l'état le plus représenté (proximité de Boston)
 - La majorité des coureurs adoptent un **positive split** (ralentissement)
 - Les coureurs avec un **negative split** obtiennent généralement de meilleurs temps

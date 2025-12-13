@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boston Marathon 2024 - Stratégies de Course</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #E31837;
+            --secondary: #002244;
+            --accent: #FFB81C;
+            --dark: #0a0a0f;
+            --light: #f8f8f8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+            min-height: 100vh;
+            padding: 40px;
+            color: var(--light);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        .back-link svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.8rem;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+
+        h1 .emoji {
+            margin-right: 10px;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1.1rem;
+        }
+
+        #chart {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 1100px;
+            margin: 0 auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .node rect { 
+            cursor: pointer; 
+            transition: opacity 0.2s;
+        }
+
+        .node rect:hover {
+            opacity: 0.8;
+        }
+
+        .node text { 
+            font-family: 'Source Sans Pro', sans-serif;
+            font-size: 13px; 
+            font-weight: 600;
+            fill: var(--light); 
+            pointer-events: none; 
+        }
+
+        .link { 
+            fill: none; 
+            stroke-opacity: 0.35; 
+            transition: stroke-opacity 0.3s; 
+        }
+
+        .link:hover { 
+            stroke-opacity: 0.7; 
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            color: var(--light);
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            pointer-events: none;
+            opacity: 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 280px;
+        }
+
+        .tooltip strong {
+            color: var(--accent);
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.1rem;
+            letter-spacing: 1px;
+        }
+
+        .tooltip .flow-arrow {
+            color: rgba(255, 255, 255, 0.4);
+            margin: 0 8px;
+        }
+
+        .tooltip .count {
+            display: block;
+            margin-top: 8px;
+            font-size: 1.5rem;
+            font-family: 'Bebas Neue', sans-serif;
+            color: var(--light);
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            color: rgba(255, 255, 255, 0.7);
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 16px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+        }
+
+        /* Section explicative */
+        .info-section {
+            max-width: 1100px;
+            margin: 40px auto 0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .info-card h3 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.3rem;
+            letter-spacing: 1px;
+            color: var(--accent);
+            margin-bottom: 12px;
+        }
+
+        .info-card p {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        .info-card ul {
+            list-style: none;
+            margin-top: 12px;
+        }
+
+        .info-card li {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.85rem;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .info-card li:last-child {
+            border-bottom: none;
+        }
+
+        .info-card li strong {
+            color: var(--light);
+        }
+
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body { padding: 20px; }
+            h1 { font-size: 2rem; }
+            .legend { gap: 10px; }
+            .legend-item { padding: 6px 12px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Retour au dashboard
+    </a>
+
+    <header>
+        <h1><span class="emoji">🏃</span>Stratégies de Course</h1>
+        <p class="subtitle" id="subtitle">Chargement des données...</p>
+    </header>
+
+    <div id="chart">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p>Chargement du diagramme...</p>
+        </div>
+    </div>
+
+    <div class="legend" id="legend"></div>
+
+    <div class="info-section">
+        <div class="info-card">
+            <h3>Qu'est-ce qu'un Split ?</h3>
+            <p>Le "split" compare la vitesse de la première moitié du marathon à la seconde.</p>
+            <ul>
+                <li><strong>Negative Split</strong> : 2ème moitié plus rapide (stratégie pro)</li>
+                <li><strong>Even Split</strong> : Rythme constant</li>
+                <li><strong>Positive Split</strong> : Ralentissement en fin de course</li>
+            </ul>
+        </div>
+        <div class="info-card">
+            <h3>Lecture du Diagramme</h3>
+            <p>Les flux montrent la relation entre la stratégie adoptée (gauche) et le temps final (droite). Plus le flux est épais, plus de coureurs ont suivi ce chemin.</p>
+        </div>
+        <div class="info-card">
+            <h3>Insight Clé</h3>
+            <p>Les coureurs avec un negative split ont tendance à obtenir de meilleurs temps finaux. Cependant, la majorité des participants adoptent un positive split, ce qui suggère une difficulté à maintenir le rythme sur la distance.</p>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Configuration des couleurs par stratégie
+        const strategyColors = {
+            "Negative Split": "#00d9a5",
+            "Even Split": "#00b4d8",
+            "Slight Positive": "#ffd166",
+            "Positive Split": "#f77f00",
+            "Strong Positive": "#ef476f"
+        };
+
+        const strategyOrder = ["Negative Split", "Even Split", "Slight Positive", "Positive Split", "Strong Positive"];
+        const finishOrder = ["Sub 3h", "3h - 3h30", "3h30 - 4h", "4h - 4h30", "4h30 - 5h", "5h+"];
+
+        // Fonctions de catégorisation
+        function getStrategy(percentChange) {
+            if (percentChange < -0.02) return "Negative Split";
+            if (percentChange <= 0.02) return "Even Split";
+            if (percentChange <= 0.10) return "Slight Positive";
+            if (percentChange <= 0.20) return "Positive Split";
+            return "Strong Positive";
+        }
+
+        function getFinishCategory(finishSeconds) {
+            const hours = finishSeconds / 3600;
+            if (hours < 3) return "Sub 3h";
+            if (hours < 3.5) return "3h - 3h30";
+            if (hours < 4) return "3h30 - 4h";
+            if (hours < 4.5) return "4h - 4h30";
+            if (hours < 5) return "4h30 - 5h";
+            return "5h+";
+        }
+
+        // Charger les données - CHEMIN MIS À JOUR
+        d3.csv("data/Athletes.csv").then(rawData => {
+            // Supprimer les doublons par Bib
+            const seen = new Set();
+            const data = rawData.filter(d => {
+                if (seen.has(d.Bib)) return false;
+                seen.add(d.Bib);
+                return true;
+            });
+
+            // Catégoriser chaque coureur
+            data.forEach(d => {
+                d.strategy = getStrategy(+d["Percent Change"]);
+                d.finishCategory = getFinishCategory(+d.Finish);
+            });
+
+            // Agréger les flux
+            const flowCounts = d3.rollup(data, v => v.length, d => d.strategy, d => d.finishCategory);
+
+            // Construire les nodes et links pour Sankey
+            const nodes = [...strategyOrder, ...finishOrder].map(name => ({ name }));
+            const nodeIndex = new Map(nodes.map((d, i) => [d.name, i]));
+
+            const links = [];
+            flowCounts.forEach((targets, strategy) => {
+                targets.forEach((count, finish) => {
+                    links.push({
+                        source: nodeIndex.get(strategy),
+                        target: nodeIndex.get(finish),
+                        value: count
+                    });
+                });
+            });
+
+            // Mettre à jour le sous-titre
+            document.getElementById("subtitle").textContent = 
+                `Analyse de ${data.length.toLocaleString()} coureurs — De la stratégie au temps final`;
+
+            // Supprimer le loading
+            document.querySelector("#chart").innerHTML = '';
+
+            // Dessiner le Sankey
+            drawSankey({ nodes, links });
+        }).catch(error => {
+            console.error("Erreur de chargement:", error);
+            document.querySelector("#chart").innerHTML = `
+                <div class="loading">
+                    <p style="color: #E31837;">Erreur de chargement des données</p>
+                    <p style="font-size: 0.85rem; margin-top: 10px;">Vérifiez que Athletes.csv est dans le dossier data/</p>
+                </div>
+            `;
+        });
+
+        function drawSankey(data) {
+            const width = 1050, height = 600;
+            const svg = d3.select("#chart")
+                .append("svg")
+                .attr("viewBox", `0 0 ${width} ${height}`);
+
+            const sankey = d3.sankey()
+                .nodeId(d => d.index)
+                .nodeWidth(24)
+                .nodePadding(20)
+                .nodeSort(null)
+                .extent([[30, 30], [width - 30, height - 30]]);
+
+            const { nodes, links } = sankey(data);
+            const tooltip = d3.select("#tooltip");
+
+            // Liens avec dégradé
+            const defs = svg.append("defs");
+            
+            links.forEach((link, i) => {
+                const gradient = defs.append("linearGradient")
+                    .attr("id", `gradient-${i}`)
+                    .attr("gradientUnits", "userSpaceOnUse")
+                    .attr("x1", link.source.x1)
+                    .attr("x2", link.target.x0);
+
+                gradient.append("stop")
+                    .attr("offset", "0%")
+                    .attr("stop-color", strategyColors[link.source.name] || "#888");
+
+                gradient.append("stop")
+                    .attr("offset", "100%")
+                    .attr("stop-color", strategyColors[link.source.name] || "#888")
+                    .attr("stop-opacity", 0.5);
+            });
+
+            svg.append("g")
+                .selectAll("path")
+                .data(links)
+                .join("path")
+                .attr("class", "link")
+                .attr("d", d3.sankeyLinkHorizontal())
+                .attr("stroke-width", d => Math.max(1, d.width))
+                .attr("stroke", (d, i) => `url(#gradient-${i})`)
+                .on("mouseover", (event, d) => {
+                    const percent = ((d.value / d.source.value) * 100).toFixed(1);
+                    tooltip.style("opacity", 1)
+                        .html(`
+                            <strong>${d.source.name}</strong>
+                            <span class="flow-arrow">→</span>
+                            <strong>${d.target.name}</strong>
+                            <span class="count">${d.value.toLocaleString()} coureurs</span>
+                            <span style="color: rgba(255,255,255,0.5); font-size: 0.85rem;">${percent}% de cette stratégie</span>
+                        `);
+                })
+                .on("mousemove", event => {
+                    tooltip.style("left", (event.pageX + 15) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mouseout", () => tooltip.style("opacity", 0));
+
+            // Noeuds
+            const node = svg.append("g")
+                .selectAll("g")
+                .data(nodes)
+                .join("g")
+                .attr("class", "node");
+
+            node.append("rect")
+                .attr("x", d => d.x0)
+                .attr("y", d => d.y0)
+                .attr("height", d => d.y1 - d.y0)
+                .attr("width", d => d.x1 - d.x0)
+                .attr("fill", d => strategyColors[d.name] || "#4a90d9")
+                .attr("rx", 4)
+                .on("mouseover", (event, d) => {
+                    const percent = ((d.value / d3.sum(nodes, n => n.sourceLinks.length > 0 ? n.value : 0)) * 100).toFixed(1);
+                    tooltip.style("opacity", 1)
+                        .html(`
+                            <strong>${d.name}</strong>
+                            <span class="count">${d.value.toLocaleString()} coureurs</span>
+                        `);
+                })
+                .on("mousemove", event => {
+                    tooltip.style("left", (event.pageX + 15) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mouseout", () => tooltip.style("opacity", 0));
+
+            node.append("text")
+                .attr("x", d => d.x0 < width / 2 ? d.x1 + 10 : d.x0 - 10)
+                .attr("y", d => (d.y1 + d.y0) / 2)
+                .attr("dy", "0.35em")
+                .attr("text-anchor", d => d.x0 < width / 2 ? "start" : "end")
+                .text(d => d.name);
+
+            // Légende
+            const legend = d3.select("#legend");
+            Object.entries(strategyColors).forEach(([name, color]) => {
+                legend.append("div")
+                    .attr("class", "legend-item")
+                    .html(`<div class="legend-color" style="background:${color}"></div>${name}`);
+            });
+        }
+    </script>
+</body>
+</html>

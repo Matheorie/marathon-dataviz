@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boston Marathon 2024 - Origine des Coureurs</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/topojson-client@3"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Source+Sans+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #E31837;
+            --secondary: #002244;
+            --accent: #FFB81C;
+            --dark: #0a0a0f;
+            --light: #f8f8f8;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Source Sans Pro', sans-serif;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+            min-height: 100vh;
+            padding: 40px;
+            color: var(--light);
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: rgba(255, 255, 255, 0.6);
+            text-decoration: none;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover {
+            color: var(--accent);
+        }
+
+        .back-link svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 2.8rem;
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+        }
+
+        h1 .emoji {
+            margin-right: 10px;
+        }
+
+        .subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 1.1rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .controls button {
+            padding: 12px 28px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: 'Source Sans Pro', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: rgba(255, 255, 255, 0.05);
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .controls button:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .controls button.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: white;
+            box-shadow: 0 4px 20px rgba(227, 24, 55, 0.4);
+        }
+
+        #chart {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 1100px;
+            margin: 0 auto;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .state {
+            stroke: var(--dark);
+            stroke-width: 0.5;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .state:hover {
+            opacity: 0.85;
+            stroke: var(--accent);
+            stroke-width: 2;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.95);
+            color: var(--light);
+            padding: 16px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            pointer-events: none;
+            opacity: 0;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            max-width: 250px;
+        }
+
+        .tooltip strong {
+            color: var(--accent);
+            font-family: 'Bebas Neue', sans-serif;
+            font-size: 1.2rem;
+            letter-spacing: 1px;
+        }
+
+        .tooltip-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .tooltip-row:first-of-type {
+            border-top: none;
+            margin-top: 12px;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 30px;
+        }
+
+        .legend-container {
+            width: 350px;
+        }
+
+        .legend-title {
+            text-align: center;
+            font-size: 0.85rem;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .legend-bar {
+            width: 100%;
+            height: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.6);
+            margin-top: 8px;
+        }
+
+        /* Loading state */
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            body { padding: 20px; }
+            h1 { font-size: 2rem; }
+            .controls { gap: 10px; }
+            .controls button { padding: 10px 20px; font-size: 0.85rem; }
+        }
+    </style>
+</head>
+<body>
+    <a href="index.html" class="back-link">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Retour au dashboard
+    </a>
+
+    <header>
+        <h1><span class="emoji">🗺️</span>Origine des Coureurs</h1>
+        <p class="subtitle" id="subtitle">Chargement des données...</p>
+    </header>
+
+    <div class="controls">
+        <button id="btn-count" class="active">Nombre de coureurs</button>
+        <button id="btn-time">Temps moyen</button>
+        <button id="btn-temp">Température moyenne</button>
+    </div>
+
+    <div id="chart">
+        <div class="loading">
+            <div class="loading-spinner"></div>
+            <p>Chargement de la carte...</p>
+        </div>
+    </div>
+
+    <div class="legend">
+        <div class="legend-container">
+            <div class="legend-title" id="legend-title">Échelle</div>
+            <div class="legend-bar" id="legend-bar"></div>
+            <div class="legend-labels">
+                <span id="label-min"></span>
+                <span id="label-max"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Mapping code postal -> état
+        const zipToState = {
+            '01': 'MA', '02': 'MA', '03': 'NH', '04': 'ME', '05': 'VT',
+            '06': 'CT', '07': 'NJ', '08': 'NJ', '10': 'NY', '11': 'NY',
+            '12': 'NY', '13': 'NY', '14': 'NY', '15': 'PA', '16': 'PA',
+            '17': 'PA', '18': 'PA', '19': 'PA', '20': 'DC', '21': 'MD',
+            '22': 'VA', '23': 'VA', '24': 'WV', '25': 'WV', '26': 'WV',
+            '27': 'NC', '28': 'NC', '29': 'SC', '30': 'GA', '31': 'GA',
+            '32': 'FL', '33': 'FL', '34': 'FL', '35': 'AL', '36': 'AL',
+            '37': 'TN', '38': 'TN', '39': 'MS', '40': 'KY', '41': 'KY',
+            '42': 'KY', '43': 'OH', '44': 'OH', '45': 'OH', '46': 'IN',
+            '47': 'IN', '48': 'MI', '49': 'MI', '50': 'IA', '51': 'IA',
+            '52': 'IA', '53': 'WI', '54': 'WI', '55': 'MN', '56': 'MN',
+            '57': 'SD', '58': 'ND', '59': 'MT', '60': 'IL', '61': 'IL',
+            '62': 'IL', '63': 'MO', '64': 'MO', '65': 'MO', '66': 'KS',
+            '67': 'KS', '68': 'NE', '69': 'NE', '70': 'LA', '71': 'LA',
+            '72': 'AR', '73': 'OK', '74': 'OK', '75': 'TX', '76': 'TX',
+            '77': 'TX', '78': 'TX', '79': 'TX', '80': 'CO', '81': 'CO',
+            '82': 'WY', '83': 'ID', '84': 'UT', '85': 'AZ', '86': 'AZ',
+            '87': 'NM', '88': 'TX', '89': 'NV', '90': 'CA', '91': 'CA',
+            '92': 'CA', '93': 'CA', '94': 'CA', '95': 'CA', '96': 'HI',
+            '97': 'OR', '98': 'WA', '99': 'AK'
+        };
+
+        const stateNames = {
+            'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas',
+            'CA': 'California', 'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware',
+            'DC': 'District of Columbia', 'FL': 'Florida', 'GA': 'Georgia', 'HI': 'Hawaii',
+            'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa',
+            'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine',
+            'MD': 'Maryland', 'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota',
+            'MS': 'Mississippi', 'MO': 'Missouri', 'MT': 'Montana', 'NE': 'Nebraska',
+            'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey', 'NM': 'New Mexico',
+            'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio',
+            'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island',
+            'SC': 'South Carolina', 'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas',
+            'UT': 'Utah', 'VT': 'Vermont', 'VA': 'Virginia', 'WA': 'Washington',
+            'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming'
+        };
+
+        const nameToAbbr = Object.fromEntries(Object.entries(stateNames).map(([k, v]) => [v, k]));
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+
+        let stateData = {};
+        let currentMode = 'count';
+
+        // Charger les données - CHEMIN MIS À JOUR
+        Promise.all([
+            d3.json("https://cdn.jsdelivr.net/npm/us-atlas@3/states-10m.json"),
+            d3.csv("data/Athletes.csv"),
+            d3.csv("data/Weather.csv")
+        ]).then(([us, athletes, weather]) => {
+            // Calculer température moyenne par zip
+            const tempByZip = d3.rollup(weather, 
+                v => d3.mean(v, d => +d["Mean Temp"]), 
+                d => String(d.Zip).padStart(5, '0')
+            );
+
+            // Supprimer doublons athlètes
+            const seen = new Set();
+            const data = athletes.filter(d => {
+                if (seen.has(d.Bib)) return false;
+                seen.add(d.Bib);
+                return true;
+            });
+
+            // Extraire état et température pour chaque coureur
+            data.forEach(d => {
+                const zip = String(d.Zip).padStart(5, '0');
+                const prefix = zip.slice(0, 2);
+                d.state = zipToState[prefix];
+                d.temp = tempByZip.get(zip) || null;
+            });
+
+            // Agréger par état
+            const byState = d3.group(data.filter(d => d.state), d => d.state);
+            byState.forEach((runners, state) => {
+                const runnersWithTemp = runners.filter(d => d.temp !== null);
+                const avgTempF = runnersWithTemp.length > 0 ? d3.mean(runnersWithTemp, d => d.temp) : null;
+                const avgTempC = avgTempF !== null ? (avgTempF - 32) * (5/9) : null;
+
+                stateData[state] = {
+                    count: runners.length,
+                    avgTime: d3.mean(runners, d => +d.Finish),
+                    avgTemp: avgTempC
+                };
+            });
+
+            document.getElementById("subtitle").textContent = 
+                `Boston Marathon 2024 — ${data.length.toLocaleString()} coureurs par état d'origine`;
+
+            // Supprimer le loading
+            document.querySelector("#chart").innerHTML = '';
+            
+            drawMap(us);
+            updateColors();
+        }).catch(error => {
+            console.error("Erreur de chargement:", error);
+            document.querySelector("#chart").innerHTML = `
+                <div class="loading">
+                    <p style="color: #E31837;">Erreur de chargement des données</p>
+                    <p style="font-size: 0.85rem; margin-top: 10px;">Vérifiez que les fichiers CSV sont dans le dossier data/</p>
+                </div>
+            `;
+        });
+
+        function drawMap(us) {
+            const width = 1050, height = 600;
+            const svg = d3.select("#chart")
+                .append("svg")
+                .attr("viewBox", `0 0 ${width} ${height}`);
+
+            const projection = d3.geoAlbersUsa().fitSize([width, height], topojson.feature(us, us.objects.states));
+            const path = d3.geoPath().projection(projection);
+
+            const states = topojson.feature(us, us.objects.states).features;
+            const tooltip = d3.select("#tooltip");
+
+            svg.selectAll("path")
+                .data(states)
+                .join("path")
+                .attr("class", "state")
+                .attr("d", path)
+                .attr("data-state", d => d.properties.name)
+                .on("mouseover", (event, d) => {
+                    const abbr = nameToAbbr[d.properties.name];
+                    const info = stateData[abbr];
+                    if (info) {
+                        const tempText = info.avgTemp !== null ? `${info.avgTemp.toFixed(1)}°C` : 'N/A';
+                        tooltip.style("opacity", 1)
+                            .html(`
+                                <strong>${d.properties.name}</strong>
+                                <div class="tooltip-row">
+                                    <span>Coureurs</span>
+                                    <span>${info.count.toLocaleString()}</span>
+                                </div>
+                                <div class="tooltip-row">
+                                    <span>Temps moyen</span>
+                                    <span>${formatTime(info.avgTime)}</span>
+                                </div>
+                                <div class="tooltip-row">
+                                    <span>Temp. moyenne</span>
+                                    <span>${tempText}</span>
+                                </div>
+                            `);
+                    } else {
+                        tooltip.style("opacity", 1)
+                            .html(`<strong>${d.properties.name}</strong><br><span style="color: rgba(255,255,255,0.5)">Aucun coureur</span>`);
+                    }
+                })
+                .on("mousemove", event => {
+                    tooltip.style("left", (event.pageX + 15) + "px")
+                        .style("top", (event.pageY - 10) + "px");
+                })
+                .on("mouseout", () => tooltip.style("opacity", 0));
+        }
+
+        function updateColors() {
+            let colorScale, minLabel, maxLabel, gradient, legendTitle;
+
+            if (currentMode === 'count') {
+                const counts = Object.values(stateData).map(d => d.count);
+                const maxVal = d3.max(counts);
+                colorScale = d3.scaleSequential(t => d3.interpolateBlues(Math.pow(t, 0.35)))
+                    .domain([0, maxVal]);
+                
+                minLabel = '0 coureur';
+                maxLabel = maxVal.toLocaleString() + ' coureurs (max par état)';
+                gradient = 'linear-gradient(to right, #f7fbff, #08306b)';
+            } else if (currentMode === 'time') {
+                const times = Object.values(stateData).map(d => d.avgTime);
+                const minVal = d3.min(times);
+                const maxVal = d3.max(times);
+                colorScale = d3.scaleSequential(d3.interpolateRdYlGn).domain([maxVal, minVal]);
+                minLabel = formatTime(minVal) + ' (rapide)';
+                maxLabel = formatTime(maxVal) + ' (lent)';
+                gradient = 'linear-gradient(to right, #1a9850, #ffffbf, #d73027)';
+                legendTitle = 'Temps moyen de finish';
+            } else {
+                const temps = Object.values(stateData).filter(d => d.avgTemp !== null).map(d => d.avgTemp);
+                const minVal = d3.min(temps);
+                const maxVal = d3.max(temps);
+                colorScale = d3.scaleSequential(d3.interpolateYlOrRd).domain([minVal, maxVal]);
+                minLabel = minVal.toFixed(1) + '°C';
+                maxLabel = maxVal.toFixed(1) + '°C';
+                gradient = 'linear-gradient(to right, #ffffcc, #fd8d3c, #bd0026)';
+                legendTitle = 'Température moyenne (origine)';
+            }
+
+            d3.selectAll(".state")
+                .transition()
+                .duration(500)
+                .attr("fill", function() {
+                    const name = d3.select(this).attr("data-state");
+                    const abbr = nameToAbbr[name];
+                    const info = stateData[abbr];
+                    if (!info) return "#222";
+                    if (currentMode === 'count') return colorScale(info.count);
+                    if (currentMode === 'time') return colorScale(info.avgTime);
+                    if (info.avgTemp === null) return "#222";
+                    return colorScale(info.avgTemp);
+                });
+
+            document.getElementById("legend-title").textContent = legendTitle;
+            document.getElementById("legend-bar").style.background = gradient;
+            document.getElementById("label-min").textContent = minLabel;
+            document.getElementById("label-max").textContent = maxLabel;
+        }
+
+        // Event listeners pour les boutons
+        document.getElementById("btn-count").addEventListener("click", function() {
+            currentMode = 'count';
+            document.querySelectorAll(".controls button").forEach(b => b.classList.remove("active"));
+            this.classList.add("active");
+            updateColors();
+        });
+
+        document.getElementById("btn-time").addEventListener("click", function() {
+            currentMode = 'time';
+            document.querySelectorAll(".controls button").forEach(b => b.classList.remove("active"));
+            this.classList.add("active");
+            updateColors();
+        });
+
+        document.getElementById("btn-temp").addEventListener("click", function() {
+            currentMode = 'temp';
+            document.querySelectorAll(".controls button").forEach(b => b.classList.remove("active"));
+            this.classList.add("active");
+            updateColors();
+        });
+    </script>
+</body>
+</html>

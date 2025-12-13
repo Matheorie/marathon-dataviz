@@ -99,10 +99,6 @@ Les données proviennent de [Kaggle - 2024 Boston Marathon Weather and Splits](h
 | **Mathéo Judenne** | Développement & Visualisations |
 | **Gauthier Le Brun** | Développement & Visualisations |
 
-## 📄 License
-
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
-
 ---
 
 *Projet réalisé dans le cadre du cours DataViz - ESILV 2025-2026*

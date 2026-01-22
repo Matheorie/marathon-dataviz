@@ -98,6 +98,8 @@ Les données proviennent de [Kaggle - 2024 Boston Marathon Weather and Splits](h
 |-----|------|
 | **Mathéo Judenne** | Développement & Visualisations |
 | **Gauthier Le Brun** | Développement & Visualisations |
+| **Jaël Ribere** | Développement & Visualisations |
+| **Paul Bruneton** | Développement & Visualisations |
 
 ---
 
